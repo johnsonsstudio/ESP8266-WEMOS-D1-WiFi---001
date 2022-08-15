@@ -9,7 +9,7 @@
 // for ESP8266 WIFI
 #include <ESP8266WiFi.h>
 #ifndef STASSID
-#define STASSID "ap-ssdi"
+#define STASSID "ap-ssid"
 #define STAPSK  "ap-password"
 #endif
 WiFiServer server(800);
@@ -78,7 +78,6 @@ void setup()
   Serial.println(WiFi.localIP());
 
   // start the OTA process
-
   ArduinoOTA.setPort(8266);
   ArduinoOTA.setHostname("8266");
   ArduinoOTA.setPasswordHash("c314fa2e3010aca67b6ca33cdde2f3b6");
@@ -146,12 +145,8 @@ void loop() {
   ArduinoOTA.handle();
   WiFiClient client = server.available();    // check client is connected or not
 
-  //while (!timeClient.update()) {             // 使用NTP更新 日期、時間
-  //  timeClient.forceUpdate();
-  //}
-  timeClient.update();
+  timeClient.update();                      // 使用NTP更新 日期、時間
   formattedTime = timeClient.getFormattedTime();
-  // Serial.println(formattedTime);
 
   buttonState1 = digitalRead(BUTTON1_PIN);   // 讀取按鍵1的狀態
   if (buttonState1 == LOW) {                 // 如果按鍵1按了
@@ -181,10 +176,10 @@ void loop() {
       digitalWrite(relay1, LOW);              // 開啟 R1
       digitalWrite(LED_PIN, LOW);             // 開啟 LED
       r41onTime = currentMillis;
-      while ((long)(currentMillis - r41onTime) < 30000) //  預先噴30秒
+      while ((long)(currentMillis - r41onTime) < 30000) //  預先噴30秒             =============================
       {
         currentMillis = millis();
-        delay(100);                           // !!! 不加delay的話(至少1) 跑約三~四秒就會造成重開機 !!!
+        delay(100);                           // !!! 不加delay的話 跑約三~四秒就會造成重開機 !!! (delay至少要1以上)
         //Serial.print("r41onTime == 0++ to 30000 : ");Serial.println(currentMillis- r41onTime);
       }
       digitalWrite(LED_PIN, HIGH);            // 關閉 LED
@@ -290,10 +285,6 @@ void loop() {
               t4 = 1;                           // t4 = 1小時
               Serial.print("r41on t4= ");
               Serial.println(t4);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /41/off") >= 0)
@@ -309,10 +300,6 @@ void loop() {
               r43State = "off";
               // relay1 turn off = HIGH
               digitalWrite(relay1, HIGH);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /42/on") >= 0)
@@ -323,10 +310,6 @@ void loop() {
               t4 = 2;                           // t4 = 2小時
               Serial.print("r42on t4= ");
               Serial.println(t4);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /42/off") >= 0)
@@ -342,10 +325,6 @@ void loop() {
               r43State = "off";
               // relay1 turn off = HIGH
               digitalWrite(relay1, HIGH);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /43/on") >= 0)
@@ -356,10 +335,6 @@ void loop() {
               t4 = 3;                           // t4 = 3小時
               Serial.print("r43on t4= ");
               Serial.println(t4);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /43/off") >= 0)
@@ -375,50 +350,30 @@ void loop() {
               r43State = "off";
               // relay1 turn off = HIGH
               digitalWrite(relay1, HIGH);
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /minute03") >= 0)
             {
               Serial.println("everyMinute = 3");
               everyMinute = 3;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /minute05") >= 0)
             {
               Serial.println("everyMinute = 5");
               everyMinute = 5;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /minute08") >= 0)
             {
               Serial.println("everyMinute = 8");
               everyMinute = 8;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
             }
             else if (header.indexOf("GET /minute15") >= 0)
             {
               Serial.println("everyMinute = 15");
               everyMinute = 15;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -426,10 +381,6 @@ void loop() {
             {
               Serial.println("everyMinute = 30");
               everyMinute = 30;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -437,10 +388,6 @@ void loop() {
             {
               Serial.println("everyMinute = 60");
               everyMinute = 60;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -448,10 +395,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 5");
               turnOnSec = 5;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -459,10 +402,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 10");
               turnOnSec = 10;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -470,10 +409,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 15");
               turnOnSec = 15;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -481,10 +416,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 20");
               turnOnSec = 20;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -492,10 +423,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 30");
               turnOnSec = 30;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -503,10 +430,6 @@ void loop() {
             {
               Serial.println("turnOnSec = 50");
               turnOnSec = 50;
-              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
-              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
-              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style></head>");
-              client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
               goto endhtml;
 
             }
@@ -536,6 +459,7 @@ void loop() {
             client.print(" 分鐘 噴 "); client.print(turnOnSec); client.println(" 秒</h2>");
 
             client.print("<h2>設定噴霧時間 :</h2>");
+      
             // If the r41State is off, it displays the ON button
             if (r41State == "off") {
               client.println("<a href=\"/41/on\"><button class=\"button\">1小時</button></a>");
@@ -558,6 +482,7 @@ void loop() {
             }
 
             client.print("<h2>設定 每 X 分鐘 噴 "); client.print(turnOnSec); client.println(" 秒</h2>");
+
             client.print("<a href=\"/minute03\"><button class=\"button\">3分</button></a>");
             client.print("<a href=\"/minute05\"><button class=\"button\">5分</button></a>");
             client.print("<a href=\"/minute08\"><button class=\"button\">8分</button></a>");
@@ -578,7 +503,16 @@ void loop() {
             client.print("<p> </p>");
             client.println("<body><h2>重啟設備</h2>");
             client.print("<a href=\"/reset8266\"><button class=\"button\">RESET</button></a>");
+            goto bottomhtml;
+            
 endhtml:
+            client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
+            client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
+            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style>");
+            client.println("<meta http-equiv=\"refresh\" content=\"2;url=http://192.168.0.222:800/\"/></head>");
+            client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
+            
+bottomhtml:
             client.println("</body></html>");
             // The HTTP response ends with another blank line
             client.println();
