@@ -49,7 +49,6 @@ String formattedTime;
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
-// NTPClient timeClient(ntpUDP, "192.168.0.123");
 
 const long timeoutTime = 2000;        // Define timeout time, example: 2000ms = 2s
 
@@ -79,16 +78,11 @@ void setup()
   Serial.println(WiFi.localIP());
 
   // start the OTA process
-  // Port defaults to 8266
-  ArduinoOTA.setPort(18266);
-  // Hostname defaults to esp8266-[ChipID]
-  ArduinoOTA.setHostname("4f-8266");
-  // No authentication by default
-  //ArduinoOTA.setPassword("admin");
-  // Password can be set with it's md5 value as well
-  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+
+  ArduinoOTA.setPort(8266);
+  ArduinoOTA.setHostname("8266");
   ArduinoOTA.setPasswordHash("c314fa2e3010aca67b6ca33cdde2f3b6");
-  // j-4
+
   ArduinoOTA.onStart([]()
   {
     String type;
