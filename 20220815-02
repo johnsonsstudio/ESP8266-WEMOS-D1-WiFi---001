@@ -564,20 +564,13 @@ void loop() {
             }
 
             client.print("<h2>設定 每 X 分鐘 噴 "); client.print(turnOnSec); client.println(" 秒</h2>");
-
-            client.println("<form action=\"/index.html\">");
-            client.println("<label for=\"everyMinutes\">(輸入 3~60 之間的數字):</label>");
-            client.println("<input type=\"number\" id=\"everyMinute\" name=\"everyMinute\" min=\"3\" max=\"60\">");
-            client.println("<input type=\"submit\">");
-            client.println("</form>");
-
-            //            client.print("<a href=\"/minute03\"><button class=\"button\">3分</button></a>");
-            //            client.print("<a href=\"/minute05\"><button class=\"button\">5分</button></a>");
-            //            client.print("<a href=\"/minute08\"><button class=\"button\">8分</button></a>");
-            //            client.print("<p></p>");
-            //            client.print("<a href=\"/minute15\"><button class=\"button\">15分</button></a>");
-            //            client.print("<a href=\"/minute30\"><button class=\"button\">30分</button></a>");
-            //            client.print("<a href=\"/minute60\"><button class=\"button\">60分</button></a>");
+            client.print("<a href=\"/minute03\"><button class=\"button\">3分</button></a>");
+            client.print("<a href=\"/minute05\"><button class=\"button\">5分</button></a>");
+            client.print("<a href=\"/minute08\"><button class=\"button\">8分</button></a>");
+            client.print("<p></p>");
+            client.print("<a href=\"/minute15\"><button class=\"button\">15分</button></a>");
+            client.print("<a href=\"/minute30\"><button class=\"button\">30分</button></a>");
+            client.print("<a href=\"/minute60\"><button class=\"button\">60分</button></a>");
 
             client.print("<h2>設定每 "); client.print(everyMinute); client.println(" 分鐘 噴 Y 秒</h2>");
             client.print("<a href=\"/sec05\"><button class=\"button\">5秒</button></a>");
