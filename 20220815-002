@@ -1,86 +1,91 @@
-// for OTA add this 3 lib
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
-
-// for NTP function
-#include <NTPClient.h>
+// 若需除錯時，請移除不帶引號的 "// SNlog " 以便 Serial.print 可輸出
 
 // for ESP8266 WIFI
 #include <ESP8266WiFi.h>
+
+// for OTA add this 3 lib
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>                  // for NTP function also need <WiFiUdp.h> too
+#include <ArduinoOTA.h>
+
+// for NTP
+#include <NTPClient.h>
+
 #ifndef STASSID
-#define STASSID "ap-ssid"
-#define STAPSK  "ap-password"
+#define STASSID "your-ssid"           // WIFI SSID
+#define STAPSK  "your-password"       // WIFI 密碼
 #endif
-WiFiServer server(800);
-String header;
-const char* ssid     = STASSID;
-const char* password = STAPSK;
+
+WiFiServer server(800);               // 自定義 HTTP port = 800
 
 // 定義接腳與變數
+String header;                        // HTML 內容字串
+const char* ssid     = STASSID;       // 定義SSID字串
+const char* password = STAPSK;        // 定義密碼字串
 
-const int LED_PIN = 2;      // 定義 LED的接腳 GPIO2 = pin D9　= built-in LED
+const int led_pin = 2;                // 定義 LED的接腳 GPIO2 = pin D9　= built-in LED
+const int button1_pin = 14;           // 定義 按鍵1的接腳 GPIO14 = pin D5&D13
+const int relay1 = 5;                 // 定義 Relay1的接腳 GPIO5 = pin D3&D15
+int buttonState1 = 0;                 // 定義 紀錄按鈕1的狀態值
 
-const int BUTTON1_PIN = 14; // 定義 按鍵1的接腳 GPIO14 = pin D5&D13
-
-const int relay1 = 5;       // 定義 Relay1的接腳 GPIO5 = pin D3&D15
-
-int buttonState1 = 0;       // 定義 紀錄按鈕1的狀態值
-
-String r41State = "off";    // 設定字串變數 r41State
-String r42State = "off";    // 設定字串變數 r42State
-String r43State = "off";    // 設定字串變數 r43State
+String r41State = "off";              // 設定字串變數 r41State
+String r42State = "off";              // 設定字串變數 r42State
+String r43State = "off";              // 設定字串變數 r43State
 
 unsigned long currentTime = millis(); // Current time
 unsigned long previousTime = 0;       // Previous time
 unsigned long currentMillis = 0;      // relay1 runtime
 unsigned long r41onTime = 0;          // relay1 on time
 unsigned long r41offTime = 0;         // relay1 off time
-int r41onCount = 0;       // relay1 on counts
-int r41offCount = 0;      // relay1 off counts
-int r4TotalCount = 0;     // 設定的時間內 開與關的次數
-int R1state = 0;          // relay1 狀態值
-int everyMinute = 6;      // 每幾分鐘
-int turnOnSec = 15;       // 開啟噴霧幾秒
-int t4 = 0;               // 1 = 1小時
+int r41onCount = 0;                   // relay1 on counts
+int r41offCount = 0;                  // relay1 off counts
+int r4TotalCount = 0;                 // 設定的時間內 開與關的次數
+int r1state = 0;                      // relay1 狀態值
+int everyMinute = 6;                  // 每幾分鐘
+int turnOnSec = 15;                   // 開啟噴霧幾秒
+int t4 = 0;                           // t4 = 1 = 噴霧時間1小時
 
-// 儲存日期及時間的變數
-String formattedTime;
-
-WiFiUDP ntpUDP;
+String formattedTime;                 // 儲存時間的變數
+WiFiUDP ntpUDP;                       // NTP 初始化
 NTPClient timeClient(ntpUDP);
 
-const long timeoutTime = 2000;        // Define timeout time, example: 2000ms = 2s
+const long timeoutTime = 3000;        // Define timeout time, example: 3000ms = 3s
 
-void setup()
+void setup()                          // 系統初始化 階段
 {
   currentTime = millis();
-  Serial.begin(115200);
+  Serial.begin(115200);               // 定義COM序列埠速度
 
-  pinMode(LED_PIN, OUTPUT);           // 設定LED的PIN腳為輸出
+  pinMode(led_pin, OUTPUT);           // 設定LED的PIN腳為輸出
   pinMode(relay1, OUTPUT);            // 設定relay1 pin腳為輸出
-  pinMode(BUTTON1_PIN, INPUT_PULLUP); // 設定按鈕1的接腳為輸入 上拉
+  pinMode(button1_pin, INPUT_PULLUP); // 設定按鈕1的接腳為輸入 上拉
 
-  digitalWrite(LED_PIN, HIGH);        // LED off
+  digitalWrite(led_pin, HIGH);        // LED off
   digitalWrite(relay1, HIGH);         // relay1 off
 
   WiFi.mode(WIFI_STA);                // start to connect WIFI
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
-    Serial.println("Connection Failed! Rebooting...");
+    // SNlog Serial.println("Connection Failed! Rebooting...");
     delay(5000);
     ESP.restart();
   }
-  Serial.println(".....");
+  // SNlog Serial.println(".....");
   // Print local IP address and start web server
-  Serial.print("WiFi connected, IP is: ");
-  Serial.println(WiFi.localIP());
+  // SNlog Serial.print("WiFi connected, IP is: ");
+  // SNlog Serial.println(WiFi.localIP());
 
   // start the OTA process
-  ArduinoOTA.setPort(8266);
-  ArduinoOTA.setHostname("8266");
-  ArduinoOTA.setPasswordHash("c314fa2e3010aca67b6ca33cdde2f3b6");
+  // Port defaults to 8266
+  ArduinoOTA.setPort(48266);                                        // set OTA port
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname("esp8266");                                // set OTA hostname
+  // No authentication by default
+  // ArduinoOTA.setPassword("admin");
+  // Password can be set with it's md5 value as well
+  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+  ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");   // MD5(admin)
 
   ArduinoOTA.onStart([]()
   {
@@ -95,7 +100,7 @@ void setup()
     }
 
     // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-    Serial.println("Start updating " + type);
+    // SNlog Serial.println("Start updating " + type);
   });
   ArduinoOTA.onEnd([]()
   {
@@ -133,38 +138,38 @@ void setup()
 
   server.begin();       // start WEB server
 
-  timeClient.begin();   // 設定時區 *60分 * 60秒，例如: GMT +1 = 3600  GMT +8 = 28800 = 台灣時區   GMT 0 = 0
-  timeClient.setTimeOffset(28800);
+  timeClient.begin();               // 設定時區 *60分 *60秒，例如: GMT +1 = 3600 , GMT 0 = 0
+  timeClient.setTimeOffset(28800);  // GMT +8 = 28800 = 台灣時區
 
   Serial.print("setup start at ms: "); Serial.print(currentTime); currentTime = millis();
   Serial.print(" done at ms: "); Serial.println(currentTime);
-  Serial.println("SYSTEM READY!");
+  Serial.println("SYSTEM READY!");  // 系統初始化 完成
 }
 
-void loop() {
+void loop() {                       // 程式循環 開始
   ArduinoOTA.handle();
-  WiFiClient client = server.available();    // check client is connected or not
+  WiFiClient client = server.available();     // check client is connected or not
 
-  timeClient.update();                      // 使用NTP更新 日期、時間
+  timeClient.update();                        // 使用NTP更新 日期、時間
   formattedTime = timeClient.getFormattedTime();
 
-  buttonState1 = digitalRead(BUTTON1_PIN);   // 讀取按鍵1的狀態
-  if (buttonState1 == LOW) {                 // 如果按鍵1按了
-    digitalWrite(LED_PIN, LOW);              // 亮LED
-    delay(1000);                             // 延時1秒 (持續按住按鍵1秒)
+  buttonState1 = digitalRead(button1_pin);    // 讀取按鍵1的狀態
+  if (buttonState1 == LOW) {                  // 如果按鍵1按了
+    digitalWrite(led_pin, LOW);               // 亮LED
+    delay(1000);                              // 延時1秒 (持續按住按鍵1秒)
 
-    buttonState1 = digitalRead(BUTTON1_PIN); // 再次讀取按鍵1的狀態
-    if (buttonState1 == LOW) {               // 確認按鍵1仍是按著的
-      digitalWrite(LED_PIN, HIGH);           // 關閉LED
+    buttonState1 = digitalRead(button1_pin);  // 再次讀取按鍵1的狀態
+    if (buttonState1 == LOW) {                // 確認按鍵1仍是按著的
+      digitalWrite(led_pin, HIGH);            // 關閉LED
       delay(1000);
-      t4 = t4 + 1;                           // t4 加 1小時
-      Serial.print("button1 is press, t4= ");// serial 印出 t4 值
+      t4 = t4 + 1;                            // t4 加 1小時
+      Serial.print("button1 is press, t4= "); // serial 印出 t4 值
       Serial.println(t4);
     }
   }
 
-  // 以下為定時的動作                           everyMinute = 每幾分鐘
-  //                                         turnOnSec = 開啟噴霧幾秒
+  // 以下為定時的動作                         everyMinute = 每幾分鐘
+  //                                          turnOnSec = 開啟噴霧幾秒
   if (t4 > 0)
   {
     r4TotalCount = ((t4 * 60) / everyMinute); //計算出噴霧時間內 開與關的次數 t4小時*60分/每幾分鐘)
@@ -172,58 +177,58 @@ void loop() {
     if (r41onTime == 0)  // 第一次執行時，預先噴 NN 秒 + 將開啟時間設為 目前時間-(everyMinute分鐘*60秒*1000ms) 再減100ms
     {
       currentMillis = millis();               // 目前時間
-      Serial.println("r41onTime == 0");
+      // SNlog Serial.println("r41onTime == 0");
       digitalWrite(relay1, LOW);              // 開啟 R1
-      digitalWrite(LED_PIN, LOW);             // 開啟 LED
+      digitalWrite(led_pin, LOW);             // 開啟 LED
       r41onTime = currentMillis;
-      while ((long)(currentMillis - r41onTime) < 30000) //  預先噴30秒             =============================
+      while ((long)(currentMillis - r41onTime) < 30000) //  預先噴30秒             ============
       {
         currentMillis = millis();
         delay(100);                           // !!! 不加delay的話 跑約三~四秒就會造成重開機 !!! (delay至少要1以上)
-        //Serial.print("r41onTime == 0++ to 30000 : ");Serial.println(currentMillis- r41onTime);
+        // SNlog Serial.print("r41onTime == 0++ to 30000 : ");Serial.println(currentMillis- r41onTime);
       }
-      digitalWrite(LED_PIN, HIGH);            // 關閉 LED
+      digitalWrite(led_pin, HIGH);            // 關閉 LED
       digitalWrite(relay1, HIGH);             // 關閉 R1
       r41onTime = currentMillis - ((long)everyMinute * 60 * 1000) - 100;
     }
     currentMillis = millis();                 // 目前時間
-    if (((int)(r41onCount < r4TotalCount)) && (R1state == 0) && ((unsigned long)(currentMillis - r41onTime) > (everyMinute * 60 * 1000)))
+    if (((int)(r41onCount < r4TotalCount)) && (r1state == 0) && ((unsigned long)(currentMillis - r41onTime) > (everyMinute * 60 * 1000)))
       //       R1開啟的次數 小於 全部應開的次數   +   R1為 關閉狀態   +                   　　　　  距離上次開啟時間大於或超過 everyMinute分鐘
     {
       digitalWrite(relay1, LOW);      // 開啟 R1
       r41onTime = currentMillis;      // 紀錄 R1 開啟時間
       r41onCount = r41onCount + 1;    // R1開啟的次數 +1
-      R1state = 1;                    // R1為開啟狀態
+      r1state = 1;                    // R1為開啟狀態
       r41offTime = currentMillis;     // 變更關閉時間
-      Serial.println("R1 on");        // serial 印出t4 time count等各值
-      Serial.print("t4="); Serial.print(t4);
-      Serial.print(", current="); Serial.print(currentMillis);
-      Serial.print(", state="); Serial.print(R1state);
-      Serial.print(", on="); Serial.print(r41onCount);
-      Serial.print(", onTime="); Serial.print(r41onTime);
-      Serial.print(", off="); Serial.print(r41offCount);
-      Serial.print(", offTime="); Serial.print(r41offTime);
-      Serial.print(", total=");
-      Serial.println(r4TotalCount);
+      // SNlog Serial.println("R1 on");        // serial 印出t4 time count等各值
+      // SNlog Serial.print("t4="); Serial.print(t4);
+      // SNlog Serial.print(", current="); Serial.print(currentMillis);
+      // SNlog Serial.print(", state="); Serial.print(r1state);
+      // SNlog Serial.print(", on="); Serial.print(r41onCount);
+      // SNlog Serial.print(", onTime="); Serial.print(r41onTime);
+      // SNlog Serial.print(", off="); Serial.print(r41offCount);
+      // SNlog Serial.print(", offTime="); Serial.print(r41offTime);
+      // SNlog Serial.print(", total=");
+      // SNlog Serial.println(r4TotalCount);
     }
 
-    if (((int)(r41offCount < r4TotalCount)) && (R1state == 1) && ((unsigned long)(currentMillis - r41offTime) > (turnOnSec * 1000)))
+    if (((int)(r41offCount < r4TotalCount)) && (r1state == 1) && ((unsigned long)(currentMillis - r41offTime) > (turnOnSec * 1000)))
       //       R1關閉的次數 小於 全部應開的次數    +   R1為 開啟狀態   +             　　　  距離上次開啟時間(第145行)大於或超過 turnOnSec秒
     {
       digitalWrite(relay1, HIGH);     // 關閉 R1
       r41offTime = currentMillis;     // 紀錄 R1 關閉時間
       r41offCount = r41offCount + 1;  // R1關閉的次數 +1
-      R1state = 0;                    // R1為關閉狀態
-      Serial.println("R1 off");       // serial 印出t4 time count等各值
-      Serial.print("t4="); Serial.print(t4);
-      Serial.print(", current="); Serial.print(currentMillis);
-      Serial.print(", state="); Serial.print(R1state);
-      Serial.print(", on="); Serial.print(r41onCount);
-      Serial.print(", onTime="); Serial.print(r41onTime);
-      Serial.print(", off="); Serial.print(r41offCount);
-      Serial.print(", offTime="); Serial.print(r41offTime);
-      Serial.print(", total=");
-      Serial.println(r4TotalCount);
+      r1state = 0;                    // R1為關閉狀態
+      // SNlog Serial.println("R1 off");       // serial 印出t4 time count等各值
+      // SNlog Serial.print("t4="); Serial.print(t4);
+      // SNlog Serial.print(", current="); Serial.print(currentMillis);
+      // SNlog Serial.print(", state="); Serial.print(r1state);
+      // SNlog Serial.print(", on="); Serial.print(r41onCount);
+      // SNlog Serial.print(", onTime="); Serial.print(r41onTime);
+      // SNlog Serial.print(", off="); Serial.print(r41offCount);
+      // SNlog Serial.print(", offTime="); Serial.print(r41offTime);
+      // SNlog Serial.print(", total=");
+      // SNlog Serial.println(r4TotalCount);
     }
 
     if ((int)(r41offCount == r4TotalCount))
@@ -239,16 +244,16 @@ void loop() {
       r41State = "off";
       r42State = "off";
       r43State = "off";
-      Serial.println("ALL off : ");   // serial 印出t4 time count等各值
-      Serial.print("t4="); Serial.print(t4);
-      Serial.print(", current="); Serial.print(currentMillis);
-      Serial.print(", state="); Serial.print(R1state);
-      Serial.print(", on="); Serial.print(r41onCount);
-      Serial.print(", onTime="); Serial.print(r41onTime);
-      Serial.print(", off="); Serial.print(r41offCount);
-      Serial.print(", offTime="); Serial.print(r41offTime);
-      Serial.print(", total=");
-      Serial.println(r4TotalCount);
+      // SNlog Serial.println("ALL off : ");   // serial 印出t4 time count等各值
+      // SNlog Serial.print("t4="); Serial.print(t4);
+      // SNlog Serial.print(", current="); Serial.print(currentMillis);
+      // SNlog Serial.print(", state="); Serial.print(r1state);
+      // SNlog Serial.print(", on="); Serial.print(r41onCount);
+      // SNlog Serial.print(", onTime="); Serial.print(r41onTime);
+      // SNlog Serial.print(", off="); Serial.print(r41offCount);
+      // SNlog Serial.print(", offTime="); Serial.print(r41offTime);
+      // SNlog Serial.print(", total=");
+      // SNlog Serial.println(r4TotalCount);
     }
   }
 
@@ -279,17 +284,17 @@ void loop() {
 
             if (header.indexOf("GET /41/on") >= 0)
             {
-              Serial.println("state 41 on");
+              // SNlog Serial.println("state 41 on");
               // start the 4F 1H step
               r41State = "on";
               t4 = 1;                           // t4 = 1小時
-              Serial.print("r41on t4= ");
-              Serial.println(t4);
+              // SNlog Serial.print("r41on t4= ");
+              // SNlog Serial.println(t4);
               goto endhtml;
             }
             else if (header.indexOf("GET /41/off") >= 0)
             {
-              Serial.println("state 41 off");
+              // SNlog Serial.println("state 41 off");
               t4 = 0;
               r41onCount = 0;
               r41offCount = 0;
@@ -304,17 +309,17 @@ void loop() {
             }
             else if (header.indexOf("GET /42/on") >= 0)
             {
-              Serial.println("state 42 on");
+              // SNlog Serial.println("state 42 on");
               // start the 4F 2H step
               r42State = "on";
               t4 = 2;                           // t4 = 2小時
-              Serial.print("r42on t4= ");
-              Serial.println(t4);
+              // SNlog Serial.print("r42on t4= ");
+              // SNlog Serial.println(t4);
               goto endhtml;
             }
             else if (header.indexOf("GET /42/off") >= 0)
             {
-              Serial.println("state 42 off");
+              // SNlog Serial.println("state 42 off");
               t4 = 0;
               r41onCount = 0;
               r41offCount = 0;
@@ -329,17 +334,17 @@ void loop() {
             }
             else if (header.indexOf("GET /43/on") >= 0)
             {
-              Serial.println("state 43 on");
+              // SNlog Serial.println("state 43 on");
               // start the 4F 3H step
               r43State = "on";
               t4 = 3;                           // t4 = 3小時
-              Serial.print("r43on t4= ");
-              Serial.println(t4);
+              // SNlog Serial.print("r43on t4= ");
+              // SNlog Serial.println(t4);
               goto endhtml;
             }
             else if (header.indexOf("GET /43/off") >= 0)
             {
-              Serial.println("state 43 off");
+              // SNlog Serial.println("state 43 off");
               t4 = 0;
               r41onCount = 0;
               r41offCount = 0;
@@ -354,88 +359,93 @@ void loop() {
             }
             else if (header.indexOf("GET /minute03") >= 0)
             {
-              Serial.println("everyMinute = 3");
+              // SNlog Serial.println("everyMinute = 3");
               everyMinute = 3;
               goto endhtml;
             }
             else if (header.indexOf("GET /minute05") >= 0)
             {
-              Serial.println("everyMinute = 5");
+              // SNlog Serial.println("everyMinute = 5");
               everyMinute = 5;
               goto endhtml;
             }
             else if (header.indexOf("GET /minute08") >= 0)
             {
-              Serial.println("everyMinute = 8");
+              // SNlog Serial.println("everyMinute = 8");
               everyMinute = 8;
               goto endhtml;
             }
             else if (header.indexOf("GET /minute15") >= 0)
             {
-              Serial.println("everyMinute = 15");
+              // SNlog Serial.println("everyMinute = 15");
               everyMinute = 15;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /minute30") >= 0)
             {
-              Serial.println("everyMinute = 30");
+              // SNlog Serial.println("everyMinute = 30");
               everyMinute = 30;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /minute60") >= 0)
             {
-              Serial.println("everyMinute = 60");
+              // SNlog Serial.println("everyMinute = 60");
               everyMinute = 60;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec05") >= 0)
             {
-              Serial.println("turnOnSec = 5");
+              // SNlog Serial.println("turnOnSec = 5");
               turnOnSec = 5;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec10") >= 0)
             {
-              Serial.println("turnOnSec = 10");
+              // SNlog Serial.println("turnOnSec = 10");
               turnOnSec = 10;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec15") >= 0)
             {
-              Serial.println("turnOnSec = 15");
+              // SNlog Serial.println("turnOnSec = 15");
               turnOnSec = 15;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec20") >= 0)
             {
-              Serial.println("turnOnSec = 20");
+              // SNlog Serial.println("turnOnSec = 20");
               turnOnSec = 20;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec30") >= 0)
             {
-              Serial.println("turnOnSec = 30");
+              // SNlog Serial.println("turnOnSec = 30");
               turnOnSec = 30;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /sec50") >= 0)
             {
-              Serial.println("turnOnSec = 50");
+              // SNlog Serial.println("turnOnSec = 50");
               turnOnSec = 50;
               goto endhtml;
 
             }
             else if (header.indexOf("GET /reset8266") >= 0)
             {
-              delay(500);
+              client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
+              client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
+              client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style>");
+              client.println("<center><a href=\"/\"><button class=\"button\">三秒後 點此回首頁</button></a>");
+              client.println("</body></html>");
+              delay(100);
               ESP.restart();
             }
 
@@ -459,7 +469,7 @@ void loop() {
             client.print(" 分鐘 噴 "); client.print(turnOnSec); client.println(" 秒</h2>");
 
             client.print("<h2>設定噴霧時間 :</h2>");
-      
+
             // If the r41State is off, it displays the ON button
             if (r41State == "off") {
               client.println("<a href=\"/41/on\"><button class=\"button\">1小時</button></a>");
@@ -504,14 +514,14 @@ void loop() {
             client.println("<body><h2>重啟設備</h2>");
             client.print("<a href=\"/reset8266\"><button class=\"button\">RESET</button></a>");
             goto bottomhtml;
-            
+
 endhtml:
             client.println("<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>");
             client.println("<style>.button {background-color: #4CAF50; border: none; color: white; padding: 16px 40px;}");
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}</style>");
             client.println("<meta http-equiv=\"refresh\" content=\"2;url=http://192.168.0.222:800/\"/></head>");
             client.println("<center><a href=\"/\"><button class=\"button\">回首頁</button></a>");
-            
+
 bottomhtml:
             client.println("</body></html>");
             // The HTTP response ends with another blank line
